@@ -11,7 +11,7 @@ __db_dag_default_args = {'schedule_interval': '', 'start_date': datetime(2018, 1
 
 table_name = 'test'
 
-with DAG(default_args = __db_dag_default_args, is_paused_upon_creation=False) as db_dag:
+with DAG(dag_id = 'db_dag', default_args = __db_dag_default_args, is_paused_upon_creation=False) as db_dag:
     def print_info(info_msg):
         print(msg)
 

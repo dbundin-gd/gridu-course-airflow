@@ -1,7 +1,5 @@
 import os
 
-from jobs_dag import db_dag, db_dag_push_result_op
-
 from datetime import timedelta
 from datetime import datetime
 from airflow.models import DAG
@@ -13,10 +11,14 @@ from airflow.sensors.external_task_sensor import ExternalTaskSensor
 from airflow.models import Variable
 
 run_handler_dag_args = {'schedule_interval': '@Once', 'start_date': datetime(2018, 11, 11)}
+path = Variable.get('name_path_variable', default_var='/tmp/run')
+result_dir = os.path.dirname(os.path.realpath(path))
+
 with DAG(dag_id='run_handler_dag', is_paused_upon_creation=False, default_args=run_handler_dag_args) as run_handler_dag:
     db_dag_sensor_op = ExternalTaskSensor(
-            task_id='db_dag_sensor_op'
-            external_dag_id=db_dag.dag_id,
+            task_id='db_dag_sensor_op',
+            external_dag_id='db_dag',
+            external_task_id=None,
             execution_delta=timedelta(minutes=5)
     )
 
@@ -26,7 +28,7 @@ with DAG(dag_id='run_handler_dag', is_paused_upon_creation=False, default_args=r
     print_sensored_dag_result_op = PythonOperator(
            task_id='print_sensored_dag_result_op',
            python_callable=print_callable,
-           op_args=f'{{task_instance.xcom_pull(task_id = {db_dag_push_result_op.task_id})}}'
+           op_args=f'{{task_instance.xcom_pull(task_id = db_dag_push_result_op)}}'
     )
 
     create_file_on_finish_op = BashOperator(
@@ -39,14 +41,12 @@ run_watcher_dag_args = {'schedule_interval': '', 'start_date': datetime(2018, 11
 
 with DAG(dag_id = 'run_watcher_dag', default_args=run_watcher_dag_args) as run_watcher_dag:
 
-    path = Variable.get('name_path_variable') or 'default value'
 
     file_watcher_op = FileSensor(
             task_id='file_watcher_op',
             filepath=path
     )
 
-    file_dir = os.path.dirname(os.path.realpath(path))
 
     trigger_file_handler_dag_op = TriggerDagRunOperator(
             task_id='trigger_file_handler_dag_op',
