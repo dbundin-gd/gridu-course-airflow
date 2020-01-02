@@ -7,13 +7,13 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_plugin import PostgresRowCountOperator
 from airflow.models import DAG
 
-__db_dag_default_args = {'schedule_interval': '', 'start_date': datetime(2018, 11, 11)}
+__db_dag_default_args = {'schedule_interval': '', 'start_date': datetime(2020, 1, 1)}
 
 table_name = 'test'
 
 with DAG(dag_id = 'db_dag', default_args = __db_dag_default_args, is_paused_upon_creation=False) as db_dag:
-    def print_info(info_msg):
-        print(msg)
+    def print_info(info_msg, **kwargs):
+        print(info_msg)
 
     print_info_op = PythonOperator(
             task_id = 'print_info_op',
@@ -24,27 +24,28 @@ with DAG(dag_id = 'db_dag', default_args = __db_dag_default_args, is_paused_upon
 
     echo_user_op = BashOperator(
             task_id = 'echo_user_op',
-            bash_command='echo $USER',
+            #TODO: Replace with echo $USER
+            bash_command='echo test',
             xcom_push=True
     )
 
     def check_table_exist(table_name):
         hook = PostgresHook()
-        table_exists = hook.get_first(f'''
+        sql = f'''
                 SELECT EXISTS (
                     SELECT 1
                     FROM information_schema.tables
-                    WHERE table_schema = "public" AND
-                          table_name = "?");''', table_name)['exists']
-        if table_exists:
-            return 'skip_table_creation'
+                    WHERE table_name = \'{table_name}\');'''
+        table_exists = hook.get_first(sql)
+        if str(table_exists[0]) == 'True':
+            return 'skip_table_creation_op'
         else:
             return 'create_table_op'
 
     branch_table_exists_op = BranchPythonOperator(
             task_id = 'branch_table_op',
             python_callable=check_table_exist,
-            op_args=['some_table'])
+            op_args=[table_name])
 
     create_table_op = PostgresOperator(
                 task_id='create_table_op', 
@@ -57,7 +58,7 @@ with DAG(dag_id = 'db_dag', default_args = __db_dag_default_args, is_paused_upon
 
     insert_row_op = PostgresOperator(
             task_id = 'insert_row_op',
-            sql = f'''INSERT INTO {table_name} VALUES ({{task_instance.xcom_pull(task_id = "echo_user_op")}}, NOW());''',
+            sql = "INSERT INTO {} (user_name, timestamp) VALUES ('{{{{ task_instance.xcom_pull(task_ids = 'echo_user_op') }}}}', NOW())".format(table_name),
             trigger_rule = 'all_done')
 
     query_table_op = PostgresRowCountOperator(

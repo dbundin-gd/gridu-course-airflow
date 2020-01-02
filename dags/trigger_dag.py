@@ -10,7 +10,7 @@ from airflow.contrib.sensors.file_sensor import FileSensor
 from airflow.sensors.external_task_sensor import ExternalTaskSensor
 from airflow.models import Variable
 
-run_handler_dag_args = {'schedule_interval': '@Once', 'start_date': datetime(2018, 11, 11)}
+run_handler_dag_args = {'schedule_interval': '@Once', 'start_date': datetime(2020, 1, 1)}
 path = Variable.get('name_path_variable', default_var='/tmp/run')
 result_dir = os.path.dirname(os.path.realpath(path))
 
@@ -37,7 +37,7 @@ with DAG(dag_id='run_handler_dag', is_paused_upon_creation=False, default_args=r
 
     db_dag_sensor_op >> print_sensored_dag_result_op >> create_file_on_finish_op
 
-run_watcher_dag_args = {'schedule_interval': '', 'start_date': datetime(2018, 11, 11)}
+run_watcher_dag_args = {'schedule_interval': '', 'start_date': datetime(2020, 1, 1)}
 
 with DAG(dag_id = 'run_watcher_dag', default_args=run_watcher_dag_args) as run_watcher_dag:
 
