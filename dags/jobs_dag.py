@@ -19,7 +19,7 @@ with DAG(dag_id = 'db_dag', default_args = __db_dag_default_args, is_paused_upon
             task_id = 'print_info_op',
             provide_context = True,
             python_callable=print_info,
-            op_args = ['{{dag_id}} start processing tables in database: {{database}}']
+            op_args = ['{{ task_instance.dag_id }} start processing tables in database: {{database}}']
     )
 
     echo_user_op = BashOperator(
@@ -67,7 +67,7 @@ with DAG(dag_id = 'db_dag', default_args = __db_dag_default_args, is_paused_upon
 
     db_dag_push_result_op = BashOperator(
             task_id = 'db_dag_push_result_op',
-            bash_command='echo "{{dag_id}} finished"',
+            bash_command='echo "{{ task_instance.dag_id }} finished"',
             xcom_push=True
     )
 
