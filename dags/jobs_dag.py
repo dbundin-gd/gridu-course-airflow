@@ -7,11 +7,9 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_plugin import PostgresRowCountOperator
 from airflow.models import DAG
 
-__db_dag_default_args = {'schedule_interval': '', 'start_date': datetime(2020, 1, 1)}
-
 table_name = 'test'
 
-with DAG(dag_id = 'db_dag', default_args = __db_dag_default_args, is_paused_upon_creation=False) as db_dag:
+with DAG(dag_id = 'db_dag', schedule_interval='* * * * *', start_date=datetime(2020, 1, 2), max_active_runs=1, is_paused_upon_creation=False) as db_dag:
     def print_info(info_msg, **kwargs):
         print(info_msg)
 
